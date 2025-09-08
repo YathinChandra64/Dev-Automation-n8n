@@ -1,0 +1,368 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -544,
+        -80
+      ],
+      "id": "c67df7d4-722c-40f6-a981-ce853c0318fe",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://www.engadget.com/rss.xml",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        64
+      ],
+      "id": "46dc4697-7214-42c8-a2f1-77b0c9aaf108",
+      "name": "RSS Read"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -64,
+        -96
+      ],
+      "id": "a73a2271-aee9-442d-8f90-35b3765dc291",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "url": "https://www.wired.com/feed/category/business/latest/rss",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        -224
+      ],
+      "id": "c2b5e247-a495-49af-b900-ac4a0a79759a",
+      "name": "wired"
+    },
+    {
+      "parameters": {
+        "url": "https://feeds.arstechnica.com/arstechnica/technology-lab",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        -80
+      ],
+      "id": "0e693207-e95e-4211-8e12-292c819a2e4b",
+      "name": "ars technica"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.slice(0, 5);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        -80
+      ],
+      "id": "d10b8b47-32d9-4c02-a29a-b010e43cc0e7",
+      "name": "slicing to 5 items"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({\n  json: {\n    title: item.json.title || \"\",\n    link: item.json.link || \"\",\n    // Prefer full article text, fallback to snippet\n    full_text: item.json['content:encoded'] || \n               item.json.content || \n               item.json.contentSnippet || \"\"\n  }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        -80
+      ],
+      "id": "63d3c0af-ff1f-42db-a2ad-5c8ad40269b0",
+      "name": "standardizing the output"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyCwGT4KwzZw0zHUm7aOoqP0ivkIZf9WKQY",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Content-Type\": \"application/json\"\n}\n",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"Summarize this article in 2 sentences and suggest 3 tags:\\n\\n{{$json.full_text}}\"\n        }\n      ]\n    }\n  ]\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        576,
+        -80
+      ],
+      "id": "79fceb38-7be9-4503-8579-80c9c8e06d36",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const summaryText = item.json.candidates?.[0]?.content?.parts?.[0]?.text || \"\";\n\n  return {\n    json: {\n      summary: summaryText\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        -80
+      ],
+      "id": "da65fc49-e97a-4365-8180-d0707e25d269",
+      "name": "gemini summary"
+    },
+    {
+      "parameters": {
+        "jsCode": "const summaries = items.map(item => item.json.summary);\n\nreturn [{\n  json: {\n    summariesArray: summaries\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        -80
+      ],
+      "id": "be293f47-f75f-42e8-a407-6cd04b637718",
+      "name": "collecting all summaries"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyCwGT4KwzZw0zHUm7aOoqP0ivkIZf9WKQY",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ \n  JSON.stringify({\n    contents: [\n      {\n        parts: [\n          {\n            text: \"You are an editor. From these summaries, pick the single best topic and write a detailed 400-word Dev.to article. Respond only in valid JSON format with keys: title, body, tags. Do not include markdown or extra formatting. Ensure the description is rich, informative, and suitable for a technical audience.Ensure that the tags dont contain non-alphanumeric characters\"\n          },\n          {\n            text: $json.summariesArray.join(\"\\n\\n\")\n          }\n        ]\n      }\n    ]\n  }) \n}}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1168,
+        -80
+      ],
+      "id": "4a36a342-e08a-4b60-9c9b-d1cf693f2321",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  let raw = item.json.candidates?.[0]?.content?.parts?.[0]?.text || \"{}\";\n\n  // Clean up formatting\n  raw = raw\n    .replace(/```json|```/g, \"\") // remove markdown code block markers\n    .replace(/\\\\n/g, \"\")          // remove escaped newlines\n    .trim();                      // remove leading/trailing whitespace\n\n  let parsed;\n  try {\n    parsed = JSON.parse(raw);\n  } catch (e) {\n    parsed = { error: \"Invalid JSON from Gemini\", raw };\n  }\n\n  return { json: parsed };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        -80
+      ],
+      "id": "75c5adad-9016-40cd-bd1d-3038e196cb54",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dev.to/api/articles",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\n  \"Content-Type\": \"application/json\",\n  \"api-key\": \"sisS6YJQtTzXeLVHVThA522d\"\n}\n",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ \n  JSON.stringify({\n    article: {\n      title: $json.title,\n      published: true,\n      body_markdown: $json.body,\n      tags: $json.tags.slice(0,4),\n      canonical_url: $json.source || \"\"\n    }\n  }) \n}}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1584,
+        -80
+      ],
+      "id": "4574f096-09dd-41f9-a230-75412309e802",
+      "name": "HTTP Request2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "wired",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ars technica",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "standardizing the output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "wired": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ars technica": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "slicing to 5 items": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "standardizing the output": {
+      "main": [
+        [
+          {
+            "node": "slicing to 5 items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "gemini summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gemini summary": {
+      "main": [
+        [
+          {
+            "node": "collecting all summaries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "collecting all summaries": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "3aeb5b3b-43a6-4535-98aa-297f981c3289",
+  "meta": {
+    "instanceId": "708a637ee135db3a72641564dc3816e121ce2f5d0fc129b1240a13ab714c74f7"
+  },
+  "id": "IX53vNWoDHGdDvzO",
+  "tags": [
+    {
+      "createdAt": "2025-09-07T17:28:02.209Z",
+      "updatedAt": "2025-09-07T17:28:02.209Z",
+      "id": "naZRS4R7ZVcUKpyC",
+      "name": "dev.to"
+    }
+  ]
+}
