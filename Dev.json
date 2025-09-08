@@ -105,7 +105,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyCwGT4KwzZw0zHUm7aOoqP0ivkIZf9WKQY",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}",
         "sendHeaders": true,
         "specifyHeaders": "json",
         "jsonHeaders": "{\n  \"Content-Type\": \"application/json\"\n}\n",
@@ -152,7 +152,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyCwGT4KwzZw0zHUm7aOoqP0ivkIZf9WKQY",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ \n  JSON.stringify({\n    contents: [\n      {\n        parts: [\n          {\n            text: \"You are an editor. From these summaries, pick the single best topic and write a detailed 400-word Dev.to article. Respond only in valid JSON format with keys: title, body, tags. Do not include markdown or extra formatting. Ensure the description is rich, informative, and suitable for a technical audience.Ensure that the tags dont contain non-alphanumeric characters\"\n          },\n          {\n            text: $json.summariesArray.join(\"\\n\\n\")\n          }\n        ]\n      }\n    ]\n  }) \n}}\n",
@@ -186,7 +186,7 @@
         "url": "https://dev.to/api/articles",
         "sendHeaders": true,
         "specifyHeaders": "json",
-        "jsonHeaders": "={\n  \"Content-Type\": \"application/json\",\n  \"api-key\": \"sisS6YJQtTzXeLVHVThA522d\"\n}\n",
+        "jsonHeaders": "={\n  \"Content-Type\": \"application/json\",\n  \"api-key\": \"{API_KEY}\"\n}\n",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ \n  JSON.stringify({\n    article: {\n      title: $json.title,\n      published: true,\n      body_markdown: $json.body,\n      tags: $json.tags.slice(0,4),\n      canonical_url: $json.source || \"\"\n    }\n  }) \n}}\n",
